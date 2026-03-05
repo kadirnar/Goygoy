@@ -1,0 +1,9 @@
+asr:
+  model: "Qwen/Qwen3-ASR-1.7B"
+
+llm:
+  model: "gpt-oss-120b"
+
+tts:
+  model: "Vyvo/VyvoTTS-EN-Beta"
+  snac_model: "hubertsiuzdak/snac_24khz"
