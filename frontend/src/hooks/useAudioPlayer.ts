@@ -10,6 +10,8 @@ interface UseAudioPlayerReturn {
   stopPlayback: () => void;
   /** Get current RMS amplitude (0-1) for orb visualization */
   getAmplitude: () => number;
+  /** Get byte frequency data (128 bins, 0-255) for visualization */
+  getFrequencyData: () => Uint8Array | null;
   /** Initialize the audio context (call on user gesture) */
   init: () => void;
 }
@@ -21,6 +23,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const scheduledRef = useRef<AudioBufferSourceNode[]>([]);
   const nextStartTimeRef = useRef<number>(0);
   const analyserData = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const freqData = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
   const init = useCallback(() => {
     if (contextRef.current) return;
@@ -33,6 +36,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     analyser.smoothingTimeConstant = 0.8;
     analyserRef.current = analyser;
     analyserData.current = new Float32Array(new ArrayBuffer(analyser.fftSize * 4));
+    freqData.current = new Uint8Array(analyser.frequencyBinCount);
 
     const gain = ctx.createGain();
     gain.gain.value = 1.0;
@@ -102,5 +106,13 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     return Math.sqrt(sum / data.length); // RMS
   }, []);
 
-  return { feedAudio, stopPlayback, getAmplitude, init };
+  const getFrequencyData = useCallback((): Uint8Array | null => {
+    const analyser = analyserRef.current;
+    const buf = freqData.current;
+    if (!analyser || !buf) return null;
+    analyser.getByteFrequencyData(buf);
+    return buf;
+  }, []);
+
+  return { feedAudio, stopPlayback, getAmplitude, getFrequencyData, init };
 }

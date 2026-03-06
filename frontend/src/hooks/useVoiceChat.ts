@@ -32,6 +32,7 @@ interface UseVoiceChatReturn {
   stop: () => void;
   bargeIn: () => void;
   getAmplitude: () => number;
+  getFrequencyData: () => Uint8Array | null;
 }
 
 export function useVoiceChat(): UseVoiceChatReturn {
@@ -189,5 +190,6 @@ export function useVoiceChat(): UseVoiceChatReturn {
     stop,
     bargeIn,
     getAmplitude: player.getAmplitude,
+    getFrequencyData: player.getFrequencyData,
   };
 }
