@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waufi — Try Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #080808; color: #e5e5e5; overflow-x: hidden; min-height: 100vh; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080808; }
+    ::-webkit-scrollbar-thumb { background: #EC4899; border-radius: 3px; }
+
+    /* Character select card */
+    .char-select {
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+    }
+    .char-select:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 16px 50px rgba(236, 72, 153, 0.1);
+      border-color: rgba(236, 72, 153, 0.2);
+    }
+    .char-select.active {
+      border-color: rgba(236, 72, 153, 0.5);
+      box-shadow: 0 0 40px rgba(236, 72, 153, 0.12);
+    }
+    .char-select img {
+      transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .char-select:hover img { transform: scale(1.06); }
+    .char-select .overlay {
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 40%, transparent 100%);
+    }
+
+    /* Call screen */
+    .call-screen {
+      background: rgba(8, 8, 8, 0.95);
+      border: 1px solid rgba(236, 72, 153, 0.12);
+      backdrop-filter: blur(24px);
+      border-radius: 20px;
+      box-shadow: 0 0 80px rgba(236, 72, 153, 0.06), 0 30px 80px rgba(0,0,0,0.6);
+    }
+
+    /* Voice bars */
+    .v-bar {
+      background: linear-gradient(to top, #EC4899, #F472B6);
+      border-radius: 2px;
+    }
+    .v-bar.animating {
+      animation: vbar 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes vbar {
+      0% { transform: scaleY(0.2); opacity: 0.3; }
+      100% { transform: scaleY(1); opacity: 1; }
+    }
+
+    /* Pulse ring */
+    .pulse-ring {
+      animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 0.1; }
+      100% { transform: scale(1); opacity: 0.4; }
+    }
+
+    /* Chat bubble */
+    .chat-bubble {
+      animation: bubbleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes bubbleIn {
+      0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Typing dots */
+    .typing-dot {
+      animation: typingDot 1.4s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot {
+      0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-4px); }
+    }
+
+    /* Btn */
+    .btn-call {
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    }
+    .btn-call:hover { transform: translateY(-2px); }
+    .btn-call:active { transform: translateY(0); }
+    .btn-call:focus-visible { outline: 2px solid #EC4899; outline-offset: 3px; }
+
+    /* Fade transitions */
+    .fade-enter { opacity: 0; transform: translateY(20px); }
+    .fade-active { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    /* Glow bg */
+    .glow-bg {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      z-index: 0;
+      transition: background 1s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient glows -->
+  <div id="glow1" class="glow-bg w-[500px] h-[500px] top-[10%] left-[5%] bg-pink-600/8"></div>
+  <div id="glow2" class="glow-bg w-[400px] h-[400px] bottom-[10%] right-[10%] bg-pink-900/6"></div>
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50" style="backdrop-filter: blur(16px); background: rgba(8,8,8,0.85); border-bottom: 1px solid rgba(255,255,255,0.04);">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2.5 group">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:stroke-pink-500 transition-colors duration-300"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        <span class="font-bold text-lg text-white tracking-tight">waufi</span>
+      </a>
+      <span class="font-mono text-xs text-gray-600">demo mode</span>
+    </div>
+  </nav>
+
+  <!-- ========== STEP 1: CHARACTER SELECT ========== -->
+  <section id="select-screen" class="relative z-10 pt-28 pb-16 min-h-screen">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="text-center mb-10">
+        <p class="font-mono text-xs text-pink-500/80 tracking-wider uppercase mb-4">// demo</p>
+        <h1 class="text-3xl sm:text-4xl font-black tracking-tighter text-white mb-3">Pick a character to call.</h1>
+        <p class="text-sm text-gray-500">Choose your character and start a voice conversation.</p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4" id="char-grid">
+
+        <!-- Naruto -->
+        <div class="char-select" data-char="naruto" data-name="Naruto Uzumaki" data-anime="Naruto" data-color="#FB923C" data-img="images/AaSMqlXvBNSlO7EmbGlO8_99d448c3006d41d586635727ac025f11.png" data-traits="brave &middot; loud" data-quote="Believe it! I never go back on my word, dattebayo!">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/AaSMqlXvBNSlO7EmbGlO8_99d448c3006d41d586635727ac025f11.png" alt="Naruto Uzumaki" class="w-full h-full object-cover object-top" />
+            <div class="overlay absolute inset-0"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
+              <h3 class="font-bold text-white text-sm">Naruto Uzumaki</h3>
+              <p class="font-mono text-[10px] text-gray-500">Naruto</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Luffy -->
+        <div class="char-select" data-char="luffy" data-name="Monkey D. Luffy" data-anime="One Piece" data-color="#EF4444" data-img="images/uToAi04SddDpLYS4JQ9kM_215e38a161d54c48bdb19c77b6848e0e.png" data-traits="wild &middot; fearless" data-quote="I'm gonna be King of the Pirates!">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/uToAi04SddDpLYS4JQ9kM_215e38a161d54c48bdb19c77b6848e0e.png" alt="Monkey D. Luffy" class="w-full h-full object-cover object-top" />
+            <div class="overlay absolute inset-0"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
+              <h3 class="font-bold text-white text-sm">Monkey D. Luffy</h3>
+              <p class="font-mono text-[10px] text-gray-500">One Piece</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Levi -->
+        <div class="char-select" data-char="levi" data-name="Levi Ackerman" data-anime="Attack on Titan" data-color="#94A3B8" data-img="images/WhEwQ8D0UMKFHev1pKxhO_253eb1483e57494cb3b71d88ab8df9ed.png" data-traits="cold &middot; sharp" data-quote="Make a choice you won't regret.">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/WhEwQ8D0UMKFHev1pKxhO_253eb1483e57494cb3b71d88ab8df9ed.png" alt="Levi Ackerman" class="w-full h-full object-cover object-center" />
+            <div class="overlay absolute inset-0"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
+              <h3 class="font-bold text-white text-sm">Levi Ackerman</h3>
+              <p class="font-mono text-[10px] text-gray-500">Attack on Titan</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jin-Woo -->
+        <div class="char-select" data-char="jinwoo" data-name="Sung Jin-Woo" data-anime="Solo Leveling" data-color="#8B5CF6" data-img="images/DgDP5e6a5XPnuIgK_6HXo_f821dde0039743e3a401c44d0c981ab2.png" data-traits="ruthless &middot; dark" data-quote="Arise.">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/DgDP5e6a5XPnuIgK_6HXo_f821dde0039743e3a401c44d0c981ab2.png" alt="Sung Jin-Woo" class="w-full h-full object-cover object-top" />
+            <div class="overlay absolute inset-0"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
+              <h3 class="font-bold text-white text-sm">Sung Jin-Woo</h3>
+              <p class="font-mono text-[10px] text-gray-500">Solo Leveling</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Light -->
+        <div class="char-select" data-char="light" data-name="Light Yagami" data-anime="Death Note" data-color="#DC2626" data-img="images/kOT64qlPy93ktpOjAZbS8_aa48f8f395924faaae5b05cf91590443.png" data-traits="genius &middot; twisted" data-quote="I am justice.">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/kOT64qlPy93ktpOjAZbS8_aa48f8f395924faaae5b05cf91590443.png" alt="Light Yagami" class="w-full h-full object-cover object-top" />
+            <div class="overlay absolute inset-0"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 z-10">
+              <h3 class="font-bold text-white text-sm">Light Yagami</h3>
+              <p class="font-mono text-[10px] text-gray-500">Death Note</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== STEP 2: CALL SCREEN ========== -->
+  <section id="call-screen" class="fixed inset-0 z-40 hidden">
+    <div class="absolute inset-0 bg-black/80" style="backdrop-filter: blur(20px);"></div>
+
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+      <div class="call-screen w-full max-w-md">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid rgba(236,72,153,0.08);">
+          <div class="flex items-center gap-3">
+            <div id="call-avatar" class="w-10 h-10 rounded-lg overflow-hidden border border-pink-500/20">
+              <img src="" alt="" class="w-full h-full object-cover object-top" />
+            </div>
+            <div>
+              <h3 id="call-name" class="font-bold text-white text-sm"></h3>
+              <div class="flex items-center gap-1.5">
+                <div id="call-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                <span id="call-status" class="font-mono text-[10px] text-emerald-400/80">connecting...</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-end" class="btn-call w-9 h-9 rounded-full flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40" style="box-shadow: 0 0 20px rgba(239,68,68,0.1);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Voice visualizer -->
+        <div id="voice-area" class="px-6 py-8 flex flex-col items-center gap-6">
+          <!-- Character image + rings -->
+          <div class="relative">
+            <div id="pulse-ring-1" class="absolute inset-[-12px] rounded-full border border-pink-500/10 pulse-ring"></div>
+            <div id="pulse-ring-2" class="absolute inset-[-24px] rounded-full border border-pink-500/5 pulse-ring" style="animation-delay: 0.7s;"></div>
+            <div id="call-img-large" class="w-28 h-28 rounded-2xl overflow-hidden border-2 border-pink-500/20" style="box-shadow: 0 0 40px rgba(236,72,153,0.15);">
+              <img src="" alt="" class="w-full h-full object-cover object-top" />
+            </div>
+          </div>
+
+          <!-- Voice bars -->
+          <div id="voice-bars" class="flex items-center justify-center gap-[3px] h-10">
+            <div class="v-bar w-[3px]" style="height: 10px;"></div>
+            <div class="v-bar w-[3px]" style="height: 18px;"></div>
+            <div class="v-bar w-[3px]" style="height: 26px;"></div>
+            <div class="v-bar w-[3px]" style="height: 14px;"></div>
+            <div class="v-bar w-[3px]" style="height: 22px;"></div>
+            <div class="v-bar w-[3px]" style="height: 30px;"></div>
+            <div class="v-bar w-[3px]" style="height: 20px;"></div>
+            <div class="v-bar w-[3px]" style="height: 12px;"></div>
+            <div class="v-bar w-[3px]" style="height: 24px;"></div>
+            <div class="v-bar w-[3px]" style="height: 16px;"></div>
+            <div class="v-bar w-[3px]" style="height: 28px;"></div>
+            <div class="v-bar w-[3px]" style="height: 8px;"></div>
+            <div class="v-bar w-[3px]" style="height: 20px;"></div>
+            <div class="v-bar w-[3px]" style="height: 32px;"></div>
+            <div class="v-bar w-[3px]" style="height: 14px;"></div>
+            <div class="v-bar w-[3px]" style="height: 22px;"></div>
+          </div>
+
+          <!-- Timer -->
+          <div class="font-mono text-sm text-gray-500" id="call-timer">00:00</div>
+        </div>
+
+        <!-- Chat messages -->
+        <div id="chat-area" class="px-6 pb-4 max-h-[200px] overflow-y-auto space-y-3" style="scrollbar-width: thin;">
+        </div>
+
+        <!-- Input area -->
+        <div class="px-6 py-4" style="border-top: 1px solid rgba(236,72,153,0.08);">
+          <div class="flex items-center gap-3">
+            <button id="btn-mic" class="btn-call w-11 h-11 rounded-full flex items-center justify-center bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 hover:border-pink-500/40" style="box-shadow: 0 0 20px rgba(236,72,153,0.1);">
+              <svg id="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <div class="flex-1 relative">
+              <input id="chat-input" type="text" placeholder="Type a message..." class="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-pink-500/30 transition-colors duration-300" />
+            </div>
+            <button id="btn-send" class="btn-call w-11 h-11 rounded-full flex items-center justify-center bg-pink-500 hover:bg-pink-600" style="box-shadow: 0 4px 20px rgba(236,72,153,0.3);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <p class="text-center font-mono text-[10px] text-gray-700 mt-3">demo mode — responses are simulated</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ===== Character data & demo responses =====
+    const demoResponses = {
+      naruto: [
+        "Hey! You actually called me? That's awesome, dattebayo!",
+        "You know, when I was a kid, nobody would even look at me. Now look at us, talking like friends!",
+        "Don't ever give up on your dream. I failed the graduation exam three times, and now I'm Hokage!",
+        "Ramen? Did someone say ramen?! Ichiraku's miso ramen is the BEST thing ever created!",
+        "I learned something important from Jiraiya-sensei... the answer to peace is inside all of us. We just gotta find it.",
+        "Sasuke was my rival, my brother, my biggest pain... but I never gave up on him. That's my ninja way!",
+        "You seem like a good person. I can tell. My gut never lies, dattebayo!",
+      ],
+      luffy: [
+        "Shishishi! Hey, you called! Wanna join my crew?",
+        "Being Pirate King isn't about ruling anyone. It means being the freest person on the whole sea!",
+        "I don't need a plan. If something's wrong, I punch it. If someone's crying, I punch whoever made them cry.",
+        "MEAT! Do you have any meat? I'm SO hungry right now...",
+        "My crew is everything. Zoro, Nami, Sanji, Chopper... they're not just friends. They're family.",
+        "Ace... he died smiling. He told me he was glad to be alive. I still carry that with me every day.",
+        "You can't be free if you're afraid. So just stop being afraid! ...What? It's that simple!",
+      ],
+      levi: [
+        "...You actually called. I hope you have something worth saying.",
+        "Tch. Listen. I can't tell you what the right choice is. Nobody can. Just pick the one you'll regret least.",
+        "The world is cruel. And also very beautiful. Mikasa's words, not mine... but she wasn't wrong.",
+        "I've watched more people die than I care to count. But each one of them chose to fight. I won't dishonor that by giving up.",
+        "Clean your room. Seriously. A cluttered space is a cluttered mind, and I don't tolerate either.",
+        "Strength isn't about being the strongest. It's about still standing when everyone else has fallen.",
+        "...Don't mistake my silence for not caring. I just don't waste words on things that don't matter.",
+      ],
+      jinwoo: [
+        "...You called the Shadow Monarch. Bold move. What do you want?",
+        "I was E-Rank once. The weakest hunter alive. Everyone pitied me. Now? ...Now they fear me.",
+        "Strength isn't given. It's earned — in dungeons, in blood, in the space between life and death.",
+        "Arise. ...Sorry, habit. That word carries more weight than you know.",
+        "My sister, my mother... they're why I fight. Not for the System. Not for power. For them.",
+        "The stronger I become, the more alone I am. That's the price. I've accepted it.",
+        "Trust is a luxury. I've seen what people do when they think they're more powerful than you. So I stay prepared.",
+      ],
+      light: [
+        "Interesting that you called me. I've been expecting someone with... curiosity.",
+        "Let me ask you something. If you had the power to eliminate every criminal on earth, would you use it?",
+        "The world was rotting. I didn't create that reality — I just refused to ignore it like everyone else.",
+        "L was brilliant. The only mind that truly challenged mine. I respected him... in my own way.",
+        "Justice requires sacrifice. The question is whether you have the resolve to make the hard choices.",
+        "People call me a monster. But crime rates dropped 70%. Innocents are safer. Tell me — who's really the villain here?",
+        "I don't expect everyone to understand. Visionaries are always misunderstood... at first.",
+      ],
+    };
+
+    // ===== State =====
+    let currentChar = null;
+    let callTimer = null;
+    let callSeconds = 0;
+    let responseIndex = {};
+    let isVoiceAnimating = false;
+
+    // ===== DOM =====
+    const selectScreen = document.getElementById('select-screen');
+    const callScreen = document.getElementById('call-screen');
+    const charCards = document.querySelectorAll('.char-select');
+    const callAvatar = document.getElementById('call-avatar').querySelector('img');
+    const callImgLarge = document.getElementById('call-img-large').querySelector('img');
+    const callName = document.getElementById('call-name');
+    const callStatus = document.getElementById('call-status');
+    const callStatusDot = document.getElementById('call-status-dot');
+    const callTimerEl = document.getElementById('call-timer');
+    const chatArea = document.getElementById('chat-area');
+    const chatInput = document.getElementById('chat-input');
+    const btnSend = document.getElementById('btn-send');
+    const btnEnd = document.getElementById('btn-end');
+    const btnMic = document.getElementById('btn-mic');
+    const voiceBars = document.querySelectorAll('#voice-bars .v-bar');
+    const glow1 = document.getElementById('glow1');
+    const glow2 = document.getElementById('glow2');
+
+    // ===== Character select =====
+    charCards.forEach(card => {
+      card.addEventListener('click', () => {
+        charCards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        startCall(card.dataset);
+      });
+    });
+
+    // ===== Start call =====
+    function startCall(data) {
+      currentChar = data.char;
+      if (!responseIndex[currentChar]) responseIndex[currentChar] = 0;
+
+      // Set UI
+      callAvatar.src = data.img;
+      callAvatar.alt = data.name;
+      callImgLarge.src = data.img;
+      callImgLarge.alt = data.name;
+      callName.textContent = data.name;
+      callStatus.textContent = 'connecting...';
+      callStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse';
+      chatArea.innerHTML = '';
+      callSeconds = 0;
+      callTimerEl.textContent = '00:00';
+
+      // Set accent color
+      const color = data.color;
+      document.getElementById('call-img-large').style.borderColor = color + '33';
+      document.getElementById('call-img-large').style.boxShadow = `0 0 40px ${color}25`;
+      voiceBars.forEach(bar => {
+        bar.style.background = `linear-gradient(to top, ${color}, ${color}88)`;
+      });
+
+      // Update ambient glow
+      glow1.style.background = `${color}12`;
+      glow2.style.background = `${color}08`;
+
+      // Show call screen
+      selectScreen.style.display = 'none';
+      callScreen.classList.remove('hidden');
+
+      // Simulate connecting
+      setTimeout(() => {
+        callStatus.textContent = 'in call';
+        callStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+
+        // Start timer
+        callTimer = setInterval(() => {
+          callSeconds++;
+          const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+          const s = String(callSeconds % 60).padStart(2, '0');
+          callTimerEl.textContent = `${m}:${s}`;
+        }, 1000);
+
+        // First message from character
+        simulateResponse(data.quote || demoResponses[currentChar][0]);
+      }, 1500);
+    }
+
+    // ===== End call =====
+    btnEnd.addEventListener('click', () => {
+      if (callTimer) clearInterval(callTimer);
+      callScreen.classList.add('hidden');
+      selectScreen.style.display = 'block';
+      stopVoiceAnimation();
+      currentChar = null;
+      glow1.style.background = 'rgba(219, 39, 119, 0.08)';
+      glow2.style.background = 'rgba(157, 23, 77, 0.06)';
+    });
+
+    // ===== Send message =====
+    function sendMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg || !currentChar) return;
+
+      addBubble(msg, 'user');
+      chatInput.value = '';
+
+      // Show typing
+      showTyping();
+
+      // Simulate response
+      const delay = 1200 + Math.random() * 1500;
+      setTimeout(() => {
+        hideTyping();
+        const responses = demoResponses[currentChar];
+        const idx = responseIndex[currentChar] % responses.length;
+        simulateResponse(responses[idx]);
+        responseIndex[currentChar]++;
+      }, delay);
+    }
+
+    btnSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // ===== Mic button (simulate voice input) =====
+    let micActive = false;
+    btnMic.addEventListener('click', () => {
+      micActive = !micActive;
+      if (micActive) {
+        btnMic.style.background = 'rgba(236, 72, 153, 0.3)';
+        btnMic.style.borderColor = 'rgba(236, 72, 153, 0.6)';
+        startVoiceAnimation();
+
+        // Simulate voice message after 2-3s
+        setTimeout(() => {
+          micActive = false;
+          btnMic.style.background = '';
+          btnMic.style.borderColor = '';
+          stopVoiceAnimation();
+
+          addBubble('(voice message)', 'user');
+          showTyping();
+
+          setTimeout(() => {
+            hideTyping();
+            const responses = demoResponses[currentChar];
+            const idx = responseIndex[currentChar] % responses.length;
+            simulateResponse(responses[idx]);
+            responseIndex[currentChar]++;
+          }, 1500);
+        }, 2000 + Math.random() * 1000);
+      } else {
+        btnMic.style.background = '';
+        btnMic.style.borderColor = '';
+        stopVoiceAnimation();
+      }
+    });
+
+    // ===== Chat helpers =====
+    function addBubble(text, sender) {
+      const div = document.createElement('div');
+      div.className = 'chat-bubble';
+
+      if (sender === 'user') {
+        div.innerHTML = `
+          <div class="flex justify-end">
+            <div class="bg-pink-500/10 border border-pink-500/15 rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+              <p class="text-sm text-gray-300">${escapeHtml(text)}</p>
+            </div>
+          </div>`;
+      } else {
+        div.innerHTML = `
+          <div class="flex justify-start">
+            <div class="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[80%]">
+              <p class="text-sm text-gray-300">${escapeHtml(text)}</p>
+            </div>
+          </div>`;
+      }
+
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function showTyping() {
+      const div = document.createElement('div');
+      div.id = 'typing-indicator';
+      div.className = 'chat-bubble';
+      div.innerHTML = `
+        <div class="flex justify-start">
+          <div class="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-3">
+            <div class="flex items-center gap-1.5">
+              <div class="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+              <div class="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+              <div class="typing-dot w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+            </div>
+          </div>
+        </div>`;
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function hideTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function simulateResponse(text) {
+      // Animate voice bars briefly
+      startVoiceAnimation();
+      addBubble(text, 'char');
+      setTimeout(() => stopVoiceAnimation(), 2000 + Math.random() * 1000);
+    }
+
+    // ===== Voice animation =====
+    function startVoiceAnimation() {
+      voiceBars.forEach((bar, i) => {
+        bar.classList.add('animating');
+        bar.style.animationDelay = `${i * 0.06}s`;
+        bar.style.animationDuration = `${0.3 + Math.random() * 0.4}s`;
+      });
+    }
+
+    function stopVoiceAnimation() {
+      voiceBars.forEach(bar => {
+        bar.classList.remove('animating');
+      });
+    }
+
+    // ===== Utils =====
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
