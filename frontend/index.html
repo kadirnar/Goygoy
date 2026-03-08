@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waufi — Talk to Your Favorite Anime Characters</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: #080808; color: #e5e5e5; overflow-x: hidden; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080808; }
+    ::-webkit-scrollbar-thumb { background: #EC4899; border-radius: 3px; }
+
+    /* Drifting text */
+    .drift-track {
+      display: flex;
+      white-space: nowrap;
+      animation: drift 20s linear infinite;
+    }
+    @keyframes drift {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Pulse glow */
+    .pulse-glow {
+      animation: pulseGlow 4s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.15; transform: scale(1); }
+      50% { opacity: 0.25; transform: scale(1.05); }
+    }
+
+    /* Fade in up */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* 3D mockup */
+    .mockup-3d {
+      perspective: 1000px;
+    }
+    .mockup-3d-inner {
+      transform: rotateY(-18deg) rotateX(12deg);
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mockup-3d:hover .mockup-3d-inner {
+      transform: rotateY(-8deg) rotateX(6deg) scale(1.02);
+    }
+
+    /* Terminal window */
+    .terminal {
+      background: rgba(8, 8, 8, 0.9);
+      border: 1px solid rgba(236, 72, 153, 0.2);
+      backdrop-filter: blur(16px);
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(236, 72, 153, 0.08), 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Voice bars */
+    .v-bar {
+      background: linear-gradient(to top, #EC4899, #F472B6);
+      animation: vbar 1s ease-in-out infinite alternate;
+      border-radius: 2px;
+    }
+    @keyframes vbar {
+      0% { transform: scaleY(0.25); opacity: 0.4; }
+      100% { transform: scaleY(1); opacity: 1; }
+    }
+
+    /* CTA */
+    .btn-main {
+      background: #EC4899;
+      color: white;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 14px 32px;
+      font-size: 0.95rem;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background 0.3s ease;
+    }
+    .btn-main:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(236, 72, 153, 0.3);
+      background: #DB2777;
+    }
+    .btn-main:active { transform: translateY(0); }
+    .btn-main:focus-visible { outline: 2px solid #EC4899; outline-offset: 3px; }
+
+    /* Section divider */
+    .sec-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.15), transparent);
+    }
+
+    /* Feature check */
+    .check-pink {
+      color: #EC4899;
+    }
+
+    /* Glow card */
+    .glow-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(236, 72, 153, 0.1);
+      border-radius: 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glow-card:hover {
+      border-color: rgba(236, 72, 153, 0.25);
+      box-shadow: 0 0 40px rgba(236, 72, 153, 0.06);
+    }
+
+    /* Character card */
+    .char-card {
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+      cursor: pointer;
+    }
+    .char-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(236, 72, 153, 0.12);
+      border-color: rgba(236, 72, 153, 0.2);
+    }
+    .char-card img {
+      transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .char-card:hover img {
+      transform: scale(1.08);
+    }
+    .char-card .char-overlay {
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.1) 60%, transparent 100%);
+    }
+    .char-card .char-glow {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .char-card:hover .char-glow {
+      opacity: 1;
+    }
+
+    /* Pricing card */
+    .price-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(236, 72, 153, 0.15);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .price-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #EC4899, transparent);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====== NAV ====== -->
+  <nav class="fixed top-0 left-0 right-0 z-50" style="backdrop-filter: blur(16px); background: rgba(8,8,8,0.85); border-bottom: 1px solid rgba(255,255,255,0.04);">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5 group">
+        <span class="font-bold text-lg text-white tracking-tight">waufi</span>
+      </a>
+      <a href="#pricing" class="btn-main text-sm !py-2.5 !px-5">Get Early Access</a>
+    </div>
+  </nav>
+
+  <!-- ====== HERO — CHARACTER SHOWCASE ====== -->
+  <section class="relative pt-28 pb-20 overflow-hidden">
+    <!-- Background glows -->
+    <div class="absolute top-[15%] left-[5%] w-[600px] h-[600px] rounded-full bg-pink-600/10 pulse-glow" style="filter: blur(140px);"></div>
+    <div class="absolute bottom-[5%] right-[5%] w-[500px] h-[500px] rounded-full bg-pink-900/10 pulse-glow" style="filter: blur(120px); animation-delay: 2s;"></div>
+
+    <div class="max-w-7xl mx-auto px-6 relative z-10">
+      <!-- Headline -->
+      <div class="text-center mb-12 fade-up">
+        <p class="font-mono text-xs text-pink-500/80 tracking-wider uppercase mb-5">// voice ai for anime fans</p>
+        <h1 class="text-5xl sm:text-6xl lg:text-8xl font-black leading-[0.9] tracking-tighter text-white mb-5">
+          Meet your anime<br />characters.
+        </h1>
+        <p class="text-base sm:text-lg text-gray-400 max-w-xl mx-auto leading-relaxed mb-8">
+          Real voice calls with AI-powered anime characters. They have personality. They remember you. They roast you. Over time, they get you.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <a href="#pricing" class="btn-main">Get Early Access</a>
+          <span class="text-xs text-gray-600 font-mono">access opens slowly.</span>
+        </div>
+      </div>
+
+      <!-- 5 Character Cards — Large -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5 fade-up" style="transition-delay: 0.15s;">
+
+        <!-- Naruto Uzumaki -->
+        <div class="char-card">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/AaSMqlXvBNSlO7EmbGlO8_99d448c3006d41d586635727ac025f11.png" alt="Naruto Uzumaki" class="w-full h-full object-cover object-top" />
+            <div class="char-overlay absolute inset-0"></div>
+            <div class="char-glow absolute inset-0" style="background: radial-gradient(ellipse at center bottom, rgba(251,146,60,0.2), transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+              <div class="flex items-center justify-between mb-1.5">
+                <h3 class="font-bold text-white text-sm sm:text-base">Naruto Uzumaki</h3>
+                <span class="font-mono text-[9px] text-orange-400/70 uppercase px-1.5 py-0.5 rounded-full border border-orange-400/20">popular</span>
+              </div>
+              <p class="font-mono text-[10px] sm:text-[11px] text-gray-500 mb-2">Naruto</p>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[2px] h-4">
+                  <div class="v-bar w-[2px]" style="height: 8px; animation-delay: 0s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                  <div class="v-bar w-[2px]" style="height: 14px; animation-delay: 0.1s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                  <div class="v-bar w-[2px]" style="height: 6px; animation-delay: 0.05s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                  <div class="v-bar w-[2px]" style="height: 12px; animation-delay: 0.15s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                  <div class="v-bar w-[2px]" style="height: 10px; animation-delay: 0.08s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="font-mono text-[9px] text-gray-600">brave · loud</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monkey D. Luffy -->
+        <div class="char-card">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/uToAi04SddDpLYS4JQ9kM_215e38a161d54c48bdb19c77b6848e0e.png" alt="Monkey D. Luffy" class="w-full h-full object-cover object-top" />
+            <div class="char-overlay absolute inset-0"></div>
+            <div class="char-glow absolute inset-0" style="background: radial-gradient(ellipse at center bottom, rgba(239,68,68,0.2), transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+              <div class="flex items-center justify-between mb-1.5">
+                <h3 class="font-bold text-white text-sm sm:text-base">Monkey D. Luffy</h3>
+                <span class="font-mono text-[9px] text-red-400/70 uppercase px-1.5 py-0.5 rounded-full border border-red-400/20">hot</span>
+              </div>
+              <p class="font-mono text-[10px] sm:text-[11px] text-gray-500 mb-2">One Piece</p>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[2px] h-4">
+                  <div class="v-bar w-[2px]" style="height: 12px; animation-delay: 0.05s; background: linear-gradient(to top, #EF4444, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 6px; animation-delay: 0.12s; background: linear-gradient(to top, #EF4444, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 14px; animation-delay: 0.02s; background: linear-gradient(to top, #EF4444, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 8px; animation-delay: 0.18s; background: linear-gradient(to top, #EF4444, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 10px; animation-delay: 0.08s; background: linear-gradient(to top, #EF4444, #FCA5A5);"></div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="font-mono text-[9px] text-gray-600">wild · fearless</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Levi Ackerman -->
+        <div class="char-card">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/WhEwQ8D0UMKFHev1pKxhO_253eb1483e57494cb3b71d88ab8df9ed.png" alt="Levi Ackerman" class="w-full h-full object-cover object-center" />
+            <div class="char-overlay absolute inset-0"></div>
+            <div class="char-glow absolute inset-0" style="background: radial-gradient(ellipse at center bottom, rgba(148,163,184,0.15), transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+              <div class="flex items-center justify-between mb-1.5">
+                <h3 class="font-bold text-white text-sm sm:text-base">Levi Ackerman</h3>
+              </div>
+              <p class="font-mono text-[10px] sm:text-[11px] text-gray-500 mb-2">Attack on Titan</p>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[2px] h-4">
+                  <div class="v-bar w-[2px]" style="height: 8px; animation-delay: 0.1s; background: linear-gradient(to top, #94A3B8, #CBD5E1);"></div>
+                  <div class="v-bar w-[2px]" style="height: 14px; animation-delay: 0.02s; background: linear-gradient(to top, #94A3B8, #CBD5E1);"></div>
+                  <div class="v-bar w-[2px]" style="height: 6px; animation-delay: 0.16s; background: linear-gradient(to top, #94A3B8, #CBD5E1);"></div>
+                  <div class="v-bar w-[2px]" style="height: 12px; animation-delay: 0.06s; background: linear-gradient(to top, #94A3B8, #CBD5E1);"></div>
+                  <div class="v-bar w-[2px]" style="height: 10px; animation-delay: 0.2s; background: linear-gradient(to top, #94A3B8, #CBD5E1);"></div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="font-mono text-[9px] text-gray-600">cold · sharp</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sung Jin-Woo -->
+        <div class="char-card">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/DgDP5e6a5XPnuIgK_6HXo_f821dde0039743e3a401c44d0c981ab2.png" alt="Sung Jin-Woo" class="w-full h-full object-cover object-top" />
+            <div class="char-overlay absolute inset-0"></div>
+            <div class="char-glow absolute inset-0" style="background: radial-gradient(ellipse at center bottom, rgba(139,92,246,0.2), transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+              <div class="flex items-center justify-between mb-1.5">
+                <h3 class="font-bold text-white text-sm sm:text-base">Sung Jin-Woo</h3>
+                <span class="font-mono text-[9px] text-violet-400/70 uppercase px-1.5 py-0.5 rounded-full border border-violet-400/20">new</span>
+              </div>
+              <p class="font-mono text-[10px] sm:text-[11px] text-gray-500 mb-2">Solo Leveling</p>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[2px] h-4">
+                  <div class="v-bar w-[2px]" style="height: 10px; animation-delay: 0.08s; background: linear-gradient(to top, #8B5CF6, #C4B5FD);"></div>
+                  <div class="v-bar w-[2px]" style="height: 6px; animation-delay: 0.14s; background: linear-gradient(to top, #8B5CF6, #C4B5FD);"></div>
+                  <div class="v-bar w-[2px]" style="height: 14px; animation-delay: 0.03s; background: linear-gradient(to top, #8B5CF6, #C4B5FD);"></div>
+                  <div class="v-bar w-[2px]" style="height: 8px; animation-delay: 0.2s; background: linear-gradient(to top, #8B5CF6, #C4B5FD);"></div>
+                  <div class="v-bar w-[2px]" style="height: 12px; animation-delay: 0.1s; background: linear-gradient(to top, #8B5CF6, #C4B5FD);"></div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="font-mono text-[9px] text-gray-600">ruthless · dark</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Light Yagami -->
+        <div class="char-card hidden sm:block">
+          <div class="aspect-[2/3] relative overflow-hidden">
+            <img src="images/kOT64qlPy93ktpOjAZbS8_aa48f8f395924faaae5b05cf91590443.png" alt="Light Yagami" class="w-full h-full object-cover object-top" />
+            <div class="char-overlay absolute inset-0"></div>
+            <div class="char-glow absolute inset-0" style="background: radial-gradient(ellipse at center bottom, rgba(220,38,38,0.15), transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-5 z-10">
+              <div class="flex items-center justify-between mb-1.5">
+                <h3 class="font-bold text-white text-sm sm:text-base">Light Yagami</h3>
+              </div>
+              <p class="font-mono text-[10px] sm:text-[11px] text-gray-500 mb-2">Death Note</p>
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[2px] h-4">
+                  <div class="v-bar w-[2px]" style="height: 12px; animation-delay: 0.06s; background: linear-gradient(to top, #DC2626, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 8px; animation-delay: 0.16s; background: linear-gradient(to top, #DC2626, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 14px; animation-delay: 0.02s; background: linear-gradient(to top, #DC2626, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 6px; animation-delay: 0.12s; background: linear-gradient(to top, #DC2626, #FCA5A5);"></div>
+                  <div class="v-bar w-[2px]" style="height: 10px; animation-delay: 0.08s; background: linear-gradient(to top, #DC2626, #FCA5A5);"></div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span class="font-mono text-[9px] text-gray-600">genius · twisted</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="text-center mt-6 font-mono text-xs text-gray-600 fade-up" style="transition-delay: 0.3s;">more characters dropping soon. <span class="text-pink-500/60">stay tuned.</span></p>
+    </div>
+  </section>
+
+  <!-- ====== WHAT IS WAUFI ====== -->
+  <div class="sec-line max-w-4xl mx-auto"></div>
+
+  <section class="py-24 relative overflow-hidden">
+    <!-- Ambient glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-pink-600/5" style="filter: blur(120px);"></div>
+
+    <div class="max-w-4xl mx-auto px-6 relative z-10">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <!-- Left: text -->
+        <div class="fade-up">
+          <p class="font-mono text-xs text-pink-500/80 tracking-wider uppercase mb-5">// not your average chatbot</p>
+          <h2 class="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tighter text-white leading-tight mb-5">
+            They remember conversations.<br />
+            They roast you later.<br />
+            <span class="text-gray-500">Over time, they understand you.</span>
+          </h2>
+          <p class="text-gray-500 max-w-md leading-relaxed">
+            Waufi characters aren't scripted bots. They're personality-driven AI with real voices, real attitude, and actual memory. Every conversation changes how they see you.
+          </p>
+        </div>
+        <!-- Right: terminal demo -->
+        <div class="fade-up flex justify-center lg:justify-end" style="transition-delay: 0.15s;">
+          <div class="mockup-3d">
+            <div class="mockup-3d-inner">
+              <div class="terminal w-[340px]">
+                <div class="flex items-center gap-2 px-4 py-3" style="border-bottom: 1px solid rgba(236,72,153,0.1);">
+                  <div class="terminal-dot bg-pink-500/60"></div>
+                  <div class="terminal-dot bg-yellow-500/40"></div>
+                  <div class="terminal-dot bg-green-500/40"></div>
+                  <span class="ml-2 font-mono text-[11px] text-gray-600">waufi://naruto</span>
+                </div>
+                <div class="p-5">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg overflow-hidden border border-orange-500/20" style="box-shadow: 0 0 15px rgba(251,146,60,0.15);">
+                      <img src="images/AaSMqlXvBNSlO7EmbGlO8_99d448c3006d41d586635727ac025f11.png" alt="Naruto" class="w-full h-full object-cover object-top" />
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-white text-sm leading-tight">Naruto Uzumaki</h3>
+                      <div class="flex items-center gap-1.5 mt-0.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span class="font-mono text-[10px] text-emerald-400/80">online</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="font-mono text-[12px] space-y-1.5 mb-4 pl-1" style="color: #9ca3af;">
+                    <div><span class="text-orange-400">mood</span>: fired up</div>
+                    <div><span class="text-orange-400">power</span>: nine-tails</div>
+                    <div><span class="text-orange-400">voice</span>: loud & warm</div>
+                    <div><span class="text-orange-400">memory</span>: <span class="text-emerald-400/70">remembers_you</span></div>
+                  </div>
+                  <div class="flex items-center gap-3 p-3 rounded-lg" style="background: rgba(251,146,60,0.04); border: 1px solid rgba(251,146,60,0.08);">
+                    <div class="flex items-center gap-[2.5px] h-6">
+                      <div class="v-bar w-[2.5px]" style="height: 6px; animation-delay: 0s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 14px; animation-delay: 0.07s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 20px; animation-delay: 0.14s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 10px; animation-delay: 0.21s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 16px; animation-delay: 0.1s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 8px; animation-delay: 0.04s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 18px; animation-delay: 0.18s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                      <div class="v-bar w-[2.5px]" style="height: 12px; animation-delay: 0.25s; background: linear-gradient(to top, #FB923C, #FDBA74);"></div>
+                    </div>
+                    <p class="font-mono text-[10px] text-gray-500 italic flex-1">"believe it! I never go back on my word."</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-line max-w-4xl mx-auto"></div>
+
+  <!-- ====== HOW IT WORKS ====== -->
+  <section class="py-24 relative">
+    <div class="max-w-4xl mx-auto px-6 text-center fade-up">
+      <p class="font-mono text-xs text-pink-500/80 tracking-wider uppercase mb-5">// how it works</p>
+      <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white leading-tight mb-14">
+        Pick a character. Call them.<br />
+        <span class="text-gray-500">That's it.</span>
+      </h2>
+
+      <div class="grid md:grid-cols-3 gap-6 text-left">
+        <div class="glow-card p-7 group">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          </div>
+          <div class="font-mono text-xs text-pink-500/60 mb-2">01</div>
+          <h3 class="font-bold text-white text-lg mb-2">Choose</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Browse the character roster. Each one has a unique personality, voice, and attitude.</p>
+        </div>
+        <div class="glow-card p-7 group">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="font-mono text-xs text-pink-500/60 mb-2">02</div>
+          <h3 class="font-bold text-white text-lg mb-2">Call</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Start a real voice call. No typing. Just talk like you would with a real person.</p>
+        </div>
+        <div class="glow-card p-7 group">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.1);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <div class="font-mono text-xs text-pink-500/60 mb-2">03</div>
+          <h3 class="font-bold text-white text-lg mb-2">Bond</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">They remember everything. The relationship evolves. They might even start to like you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-line max-w-4xl mx-auto"></div>
+
+  <!-- ====== PRICING ====== -->
+  <section id="pricing" class="py-24 relative">
+    <!-- Glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-pink-600/5" style="filter: blur(120px);"></div>
+
+    <div class="max-w-5xl mx-auto px-6 relative z-10">
+      <div class="text-center mb-14 fade-up">
+        <p class="font-mono text-xs text-pink-500/80 tracking-wider uppercase mb-4">// pricing</p>
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white">Pick your plan.</h2>
+        <p class="text-sm text-gray-500 mt-3">No hidden fees. Cancel anytime. Price locked at signup.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-5 fade-up" style="transition-delay: 0.1s;">
+
+        <!-- Starter — $5 -->
+        <div class="price-card p-7">
+          <div class="text-center mb-6">
+            <div class="font-mono text-xs text-gray-500 uppercase tracking-wider mb-2">starter</div>
+            <div class="text-5xl font-black text-white tracking-tighter">$5<span class="text-lg font-medium text-gray-500">/mo</span></div>
+            <p class="font-mono text-[11px] text-gray-600 mt-2">100 minutes / month</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              100 min voice calls
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              All characters unlocked
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Persistent memory
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Price locked forever
+            </li>
+          </ul>
+          <a href="#" class="block text-center w-full py-3 px-6 rounded-lg font-semibold text-sm text-white border border-pink-500/20 hover:border-pink-500/40 hover:bg-pink-500/5 transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-pink-500 focus-visible:outline-offset-2">Get Started</a>
+        </div>
+
+        <!-- Pro — $10 (popular) -->
+        <div class="price-card p-7 relative" style="border-color: rgba(236,72,153,0.35); box-shadow: 0 0 60px rgba(236,72,153,0.08);">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+            <span class="font-mono text-[10px] text-white uppercase tracking-wider px-3 py-1 rounded-full" style="background: #EC4899;">most popular</span>
+          </div>
+          <div class="text-center mb-6">
+            <div class="font-mono text-xs text-pink-500/80 uppercase tracking-wider mb-2">pro</div>
+            <div class="text-5xl font-black text-white tracking-tighter">$10<span class="text-lg font-medium text-gray-500">/mo</span></div>
+            <p class="font-mono text-[11px] text-pink-500/60 mt-2">300 minutes / month</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              300 min voice calls
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              All characters unlocked
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Persistent memory
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Priority response speed
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Price locked forever
+            </li>
+          </ul>
+          <a href="#" class="btn-main block text-center w-full">Get Early Access</a>
+        </div>
+
+        <!-- Ultra — $20 -->
+        <div class="price-card p-7">
+          <div class="text-center mb-6">
+            <div class="font-mono text-xs text-gray-500 uppercase tracking-wider mb-2">ultra</div>
+            <div class="text-5xl font-black text-white tracking-tighter">$20<span class="text-lg font-medium text-gray-500">/mo</span></div>
+            <p class="font-mono text-[11px] text-gray-600 mt-2">800 minutes / month</p>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              800 min voice calls
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              All characters unlocked
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              New characters early access
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Extended memory depth
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Priority support & requests
+            </li>
+            <li class="flex items-center gap-3 text-sm text-gray-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Price locked forever
+            </li>
+          </ul>
+          <a href="#" class="block text-center w-full py-3 px-6 rounded-lg font-semibold text-sm text-white border border-pink-500/20 hover:border-pink-500/40 hover:bg-pink-500/5 transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-pink-500 focus-visible:outline-offset-2">Go Ultra</a>
+        </div>
+
+      </div>
+      <p class="text-center mt-8 font-mono text-[11px] text-gray-600 fade-up" style="transition-delay: 0.2s;">all plans include a waitlist. access opens in waves.</p>
+    </div>
+  </section>
+
+  <!-- ====== FINAL CTA ====== -->
+  <section class="py-20 relative overflow-hidden">
+    <div class="max-w-2xl mx-auto px-6 text-center relative z-10 fade-up">
+      <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white mb-4">Your favorite character is waiting.</h2>
+      <p class="text-gray-500 mb-8">Stop imagining the conversation. Start having it.</p>
+      <a href="#pricing" class="btn-main inline-block">Get Early Access</a>
+    </div>
+  </section>
+
+  <div class="sec-line max-w-4xl mx-auto"></div>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="py-12">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <span class="font-bold text-sm text-white tracking-tight">waufi</span>
+        <div class="flex items-center gap-6">
+          <a href="#" class="text-xs text-gray-600 hover:text-pink-500 transition-colors duration-300">Privacy</a>
+          <a href="#" class="text-xs text-gray-600 hover:text-pink-500 transition-colors duration-300">Terms</a>
+          <a href="#" class="text-xs text-gray-600 hover:text-pink-500 transition-colors duration-300">Twitter</a>
+        </div>
+        <span class="font-mono text-[11px] text-gray-700">© 2026 waufi</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        const id = this.getAttribute('href');
+        if (id === '#') return;
+        e.preventDefault();
+        document.querySelector(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  </script>
+</body>
+</html>
